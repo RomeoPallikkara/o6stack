@@ -1,0 +1,134 @@
+from astropy.io import fits
+from astropy.table import Table
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import interp1d
+import os
+from statistics import *
+import csv
+
+#getting the directory
+
+!wget "https://archive.stsci.edu/missions/hlsp/igm/hlsp_igm_all.tar.gz"
+
+# listing out all the files inside the directort
+
+folder_path = !tar -xvf "/content/hlsp_igm_all.tar.gz" 
+mylist = list (folder_path)
+
+
+#filtered out linelist file
+def txt_file(data):
+
+	if data.endswith("linelist.txt"):
+		return True
+	else:
+		return False
+
+filtered_data = filter(txt_file,mylist)
+linedata = list(filtered_data)
+
+
+# filtered out fits files
+def fits_file(data):
+
+	if data.endswith(".fits"):
+		return True
+	else:
+		return False
+
+filtered_data = filter(fits_file,mylist)
+fitsdata = list(filtered_data)
+
+fitsdata.remove('igm/hlsp_igm_hst_cos_galfgnd_g130m-g160m_v3_spec.fits')
+
+
+
+
+
+# for sorting out only lya lines
+newFile = open("pg0953.txt","wt")
+with open('igm/pg0953/hlsp_igm_hst_cos_pg0953_g130m-g160m_v3_linelist.txt', 'rt') as f:
+    data = f.readlines()
+for line in data:
+    if 'Lya' in line:
+      newFile.write(line)
+
+
+
+
+#making the linelist file to csv for ease of extracting the redshift column
+
+with open('/content/pg0953.txt') as fin, open('/content/pg0953.csv', 'w') as fout:
+    o=csv.writer(fout)
+    for line in fin:
+        o.writerow(line.split())
+
+redshift = []
+with open('/content/pg0953.csv', 'r', encoding='utf-8', newline='') as csvfile:
+    reader= csv.reader(csvfile, delimiter=',')
+    for val in reader:
+        redshift.append(val[3])
+
+red = []
+for i in redshift:
+  f = float(i)
+  red.append(f)
+
+
+
+
+
+
+for k in red:
+  if k <=((1137/1031)-1):
+    red.remove(k)
+print(red)
+len(red)
+
+#creating file names 
+file_names =[]
+for i in range (1,36):
+  file_names.append('pg0953_%d.fits'%(i))
+
+
+
+
+
+n=0
+hdul = fits.open (fitsdata[0])
+flux = hdul[1].data['FLUX']
+cont = hdul[1].data['CONT']
+waves = (hdul[1].data['WAVE'])
+error =hdul[1].data['ERR']
+errorc =hdul[1].data['ERRC']
+econt =hdul[1].data['ECONT']
+expt =hdul[1].data['EXPT']
+
+
+for z in red:
+  a = 1+ float(z)
+  particular_wave =np.where((waves/a >1028 ) & (waves/a < 1040))
+  sub_wave = waves[particular_wave]
+  sub_flux = flux[particular_wave]
+  sub_cont = cont[particular_wave]
+  sub_error = error[particular_wave]
+  sub_errorc = errorc[particular_wave]
+  sub_econt = econt[particular_wave]
+  sub_expt = expt[particular_wave]
+
+  c1 = fits.Column(name='WAVE', array=sub_wave,format='E' )
+  c2 = fits.Column(name='FLUX', array= (sub_flux)/(sub_cont) ,format='E')
+  c3 = fits.Column(name='CONT', array=sub_cont,format='E' )
+  c4 = fits.Column(name='ERR', array=sub_error,format='E' )
+  c5 = fits.Column(name='ERRC', array=sub_errorc,format='E' )
+  c6 = fits.Column(name='ECONT', array=sub_econt,format='E' )
+  c7 = fits.Column(name='EXPT', array=sub_wave,format='E' )
+
+
+
+  t = fits.BinTableHDU.from_columns([c1, c2,c3,c4,c5,c6,c7])
+  t.writeto(file_names[n],overwrite=True)
+  n+=1
+
+
