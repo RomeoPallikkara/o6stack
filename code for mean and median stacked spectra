@@ -1,0 +1,66 @@
+**The code to find the mean and median stacked spectra for the PURE OVI systems**
+
+
+#importing all the important libraries
+
+from astropy.io import fits
+from astropy.table import Table
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import interp1d
+import os
+from statistics import *
+
+# mount drive
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+
+#getting all the fits files of the pure systems from the path by using os.path
+path ="/content/gdrive/MyDrive/PURE OVI SYSTEMS"
+
+
+fitsfiles = []
+
+for root, dirs, files in os.walk(path):
+	for file in files:
+       
+		fitsfiles.append(os.path.join(root,file))
+
+
+#setting a value for the wavelength range
+lower_bound = 1028.986328125
+upper_bound = 1040.813232421875
+w_int = np.arange(lower_bound,upper_bound,.03)
+
+#code for rebinning 
+final_list=[]
+for i in fitsfiles:
+  intflux=[]
+  hdul = fits.open (i)
+  flux= hdul[1].data['FLUX']
+  waves =hdul[1].data['WAVE']
+  cont=hdul[1].data['CONT']
+  err= hdul[1].data['ERR']
+  f = interp1d(waves,((flux/cont)),fill_value ='extrapolate')
+  f_int = f(w_int)
+  intflux = list(f_int)
+  final_list.append(intflux)
+
+
+#we need the first elements of all members of final_list to be stacked.The following code does this
+arrays = [np.array(x) for x in final_list]
+f_mean = [np.mean(k) for k in zip(*arrays)]  
+f_median = [np.median(k) for k in zip(*arrays)]
+
+
+#plotting the figures
+
+fig = plt.figure()
+plt.plot(w_int,f_median)
+fig.set_size_inches(15, 5)
+
+
+fig = plt.figure()
+plt.plot(w_int,f_mean)
+fig.set_size_inches(15, 5)
