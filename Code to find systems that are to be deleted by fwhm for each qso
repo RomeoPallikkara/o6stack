@@ -1,0 +1,45 @@
+# CODE TO FIND THE NUMBER OF SYSTEMS TO BE REMOVED AND THE LINE ID OF THOSE SYSTEMS BY INDIVIDUAL QSO
+
+
+
+#Importing the required libraries
+from astropy.io import fits
+from astropy.table import Table
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import interp1d
+import os
+from statistics import *
+import csv
+
+
+# mount drive
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+#getting the igm data from website
+
+!wget "https://archive.stsci.edu/missions/hlsp/igm/hlsp_igm_all.tar.gz"
+
+# listing out all the files inside the directort
+
+folder_path = !tar -xvf "/content/hlsp_igm_all.tar.gz" 
+mylist = list (folder_path)
+
+
+#filtered out linelist file
+def txt_file(data):
+
+	if data.endswith("linelist.txt"):
+		return True
+	else:
+		return False
+
+filtered_data = filter(txt_file,mylist)
+linedata = list(filtered_data)
+
+
+
+    
+
+
