@@ -1,0 +1,121 @@
+#The final code for getting the number of sysytems that have to be removed from the systems i have
+
+
+from astropy.io import fits
+from astropy.table import Table
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import interp1d
+import os
+from statistics import *
+
+# mount drive
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+
+!wget "https://archive.stsci.edu/missions/hlsp/igm/hlsp_igm_all.tar.gz"
+
+# listing out all the files inside the directort
+
+folder_path = !tar -xvf "/content/hlsp_igm_all.tar.gz" 
+mylist = list (folder_path)
+
+
+#filtered out linelist file into the linedata list.each element in linedata is a path to the linelistfile
+def txt_file(data):
+
+	if data.endswith("linelist.txt"):
+		return True
+	else:
+		return False
+
+filtered_data = filter(txt_file,mylist)
+linedata = list(filtered_data)
+
+# created a list which contains the path to the folder containing the fits data
+fits_filepath =["/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0953","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1121","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/mrk106","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/b0117","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/3c273","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/f1010","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/he0056","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/ton1187","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks2005","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/uks0242","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rbs542","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1229","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rxj0503","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/q1230","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/p1103","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rxj0439","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s135712","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0026","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0157","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/1es1028","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1435","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/1sj1032","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/i06229","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/ton580","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1626","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/ton236","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1259","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks2155","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/3c66a","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rxj0956","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks0552","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/mrk478","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s094952","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1216","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1307","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/i22456","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s09255b","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/3c263","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks0558","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/mrk876","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0832","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg2349","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0844","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s080908","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/tons210","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/sbs1122","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks1302","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/he0238","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1424","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1115","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/mrk1513","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/he0153","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/sbs1108","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks0405","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rbs144","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rxj2154","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/mr2251","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/he0435","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pmn2345","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/phl1811","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1049","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1116","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s092909","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/q0045","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/h2356","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pks0637","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/3c57","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1222","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/h1821","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1309","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/1es1553","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/phl2525","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/s50716","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/hs1102","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0838","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/rbs1892","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1001","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0804","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/he0226","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1048","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg0003","/content/gdrive/MyDrive/REMOVED THE NO SPECTRA AND 1217 PEAK AND FLAT FLUX and dan ovi/pg1011"]
+
+#created a list which contains the path to the csv file of linelist
+csv_file =["/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0953.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1121.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/mrk106.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/b0117.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/3c273.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/f1010.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/he0056.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/ton1187.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks2005.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/uks0242.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rbs542.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1229.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rxj0503.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/q1230.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/p1103.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rxj0439.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s135712.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0026.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0157.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/1es1028.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1435.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/1sj1032.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/i06229.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/ton580.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1626.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/ton236.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1259.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks2155.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/3c66a.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rxj0956.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks0552.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/mrk478.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s094952.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1216.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1307.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/i22456.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s09255b.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/3c263.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks0558.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/mrk876.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0832.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg2349.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0844.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s080908.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/tons210.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/sbs1122.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks1302.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/he0238.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1424.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1115.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/mrk1513.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/he0153.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/sbs1108.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks0405.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rbs144.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rxj2154.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/mr2251.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/he0435.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pmn2345.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/phl1811.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1049.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1116.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s092909.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/q0045.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/h2356.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pks0637.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/3c57.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1222.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/h1821.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1309.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/1es1553.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/phl2525.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/s50716.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/hs1102.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0838.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/rbs1892.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1001.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0804.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/he0226.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1048.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg0003.csv","/content/gdrive/MyDrive/csv linedata/linelist.csv/pg1011.csv"]
+
+
+#taking the first column of the csv file
+import csv
+bigwave =[]
+for i in csv_file:
+  absorber_wavelength  = []
+  with open(i, 'r', encoding='utf-8', newline='') as csvfile:
+    reader= csv.reader(csvfile, delimiter=',')
+    for val in reader:
+      absorber_wavelength .append(val[0])
+      wave = []
+      for i in absorber_wavelength:
+        try:
+          k=float(i)
+          wave.append(k)
+        except:
+          pass
+    bigwave.append(wave)
+
+
+
+
+# we have a file path containing the path to each qso (this folder contains the fits data for each qso).The name of the fits file is as named to so we get the redshift when we float it
+#opening that path to folder and by os.walk selecting the float of redshift
+bigred =[]
+for n in fits_filepath:
+  fitsfiles = []
+  for root, dirs, files in os.walk(n):
+    for file in files:
+      fitsfiles.append(os.path.join(file))   
+  redshift=[]
+  for i in fitsfiles:
+    l= float(i)
+    redshift.append(l)
+  #print(redshift)
+  bigred.append(redshift)
+
+
+
+#The constants that are used in the code
+#calculatin the 3fwhm width 
+#fwhm = 1.665 * b(dopler parameter).multiplied it with the OVI range and then calculated the dw using dopler formula dw/w = dv/c [dv = 3fwhm ,c = speed of light in km/s]
+o1_wave = 1031.93
+o2_wave = 1037.62
+dw1 = (1.665*50*3*o1_wave)/(3*(10**5))
+dw2 = (1.665*50*3*o2_wave)/(3*(10**5))
+
+
+
+
+#the code for selecting the lines that are coming in the range of fwhm
+#last code which is for performing the opeartion of selecting lines that are occuring between the 3fwhm range
+#adding counter to get the count of each line
+'''
+what iam doing here is like if a redshift (that is a system has any other line identifid then break the code for that system and it doesnt look for any other wave 
+between and starts with the next reddshift.
+'''
+
+
+total = 0
+for i in range(0,82):
+  count =0
+  for q in bigred[i]:
+    counter = 0
+    z =q
+    a = (1031.93 -(dw1/2))*(1+z)
+    b = (1031.93 +(dw1/2))*(1+z)
+    c= (1037.62 -(dw2/2))*(1+z)
+    d =(1037.62 +(dw2/2))*(1+z)
+  
+    for w in bigwave[i]:
+      if a < w < b or c<w<d:
+        #result = print("qso = ",i, "other line detected in = ",q," wave in dan16 =",w)
+        counter+=1
+        if counter ==1:
+          count+=1
+          total +=1
+          break
+	#print(count)
+print("The number of systems that are already in danforth linelist =  ",total)
