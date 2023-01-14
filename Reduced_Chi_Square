@@ -244,10 +244,6 @@ plt.savefig('/content/leastsquare.png',bbox_inches='tight')
 
 
 #For finding  the reduced chi square we need the observed prediceted values and the uncertainities assosiated with them.Setting up these values
-observed = new_flux_list
-predicetd = new_y
-uncertainties = new_err_list
-
 
 #Finding the reduced chi square value for the different values of n
 rcsq = []
@@ -255,13 +251,17 @@ for i in range(1,11):
   coeffs1 = fit_polynomial(new_wave_list, new_flux_list, i)
   poly = np.poly1d(coeffs1)
   new_x = x
-  new_y = poly(new_x)
+  predicted = poly(new_x)
+  observed = new_flux_list
+  uncertainties = new_err_list
   residuals = observed - predicted
   chi_square = sum((residuals/uncertainties)**2)
   #print("chi square" ,chi_square)
   degrees_of_freedom= len(observed)-i
   reduced_chi_square = chi_square / degrees_of_freedom
   rcsq.append(reduced_chi_square)
+
+
 # Plotting the reduced chi square value vs n 
 fig = plt.figure()
 fig.set_size_inches(10, 5)
