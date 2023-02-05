@@ -43,3 +43,92 @@ linedata = list(filtered_data)
     
 
 
+#getting the wavelength of the particular qso
+
+absorber_wavelength  = []
+with open('/content/gdrive/MyDrive/OVI PROJECT DATA/csv linedata/linelist.csv/pg0953.csv', 'r', encoding='utf-8', newline='') as csvfile:
+    reader= csv.reader(csvfile, delimiter=',')
+    for val in reader:
+     absorber_wavelength .append(val[0])
+
+wave = []
+for i in absorber_wavelength:
+  try:
+
+    k=float(i)
+    wave.append(k)
+  except:
+    pass
+
+
+#adding the systems that we have to the list redshift
+
+path ="/content/gdrive/MyDrive/OVI PROJECT DATA/FITS DATA/Number of sys after omitted all Danforth identified OVI(1304 systems)/pg0953"
+fitsfiles = []
+
+for root, dirs, files in os.walk(path):
+	for file in files:
+       
+		fitsfiles.append(os.path.join(file))
+
+redshift=[]
+for i in fitsfiles:
+  l= float(i)
+  redshift.append(l)
+
+#calculating the width of 3fwhm(b=50km/s)
+dw1 = (1.665*50*3*1031.93)/(3*(10**5))
+dw2 = (1.665*50*3*1037.62)/(3*(10**5))
+
+'''
+# pritning the number of systems that are having other lines within 3fwhm of one or both the chunks
+
+blunt=0
+for q in redshift:
+  blunter = 0
+  z =q
+  a = (1031.93 -(dw1/2))*(1+z)
+  b = (1031.93 +(dw1/2))*(1+z)
+  c= (1037.62 -(dw2/2))*(1+z)
+  d =(1037.62 +(dw2/2))*(1+z)
+  
+  for w in wave:
+    wee = []
+    if a < w < b or c<w<d:
+      result = print("z= ",q,)
+      blunter+=1
+      if blunter==1:
+        blunt+=1
+        break
+print("number of systems to be removed =  " ,blunt)
+print(path)
+
+'''
+
+
+
+# opening the linelist file and then checking if there are any other lines in between the 3fwhm regio of the chunks
+count=0
+id=[]
+for q in redshift:
+  counter = 0
+  z =q
+  a = (1031.93 -(dw1/2))*(1+z)
+  b = (1031.93 +(dw1/2))*(1+z)
+  c= (1037.62 -(dw2/2))*(1+z)
+  d =(1037.62 +(dw2/2))*(1+z)
+  wee = []
+  for w in wave:
+    if a < w < b or c<w<d:
+      wee.append(w)
+      
+  for l in wee:
+    with open(linedata[0], 'rt') as f:
+      data = f.readlines()
+      for line in data:
+        if str(l) in line:
+          g =line
+            
+          print("z= ",q, "   : Line ID = ",g)
+
+          
