@@ -14,7 +14,7 @@ from statistics import *
 from scipy.stats import norm
 import seaborn as sns
 #setting the path to the folder containg the fits files of the systems
-path ="/content/gdrive/MyDrive/PURE OVI SYSTEMS"   
+path ="/content/gdrive/MyDrive/OVI PROJECT DATA/FITS DATA/Pure OVI systems"   
 
 #using the os.walk  command in python to get only the fits files inside the directory and subdirectory
 
@@ -26,7 +26,7 @@ for root, dirs, files in os.walk(path):
 
 #opening the fits file by using hdul command
 
-hdul = fits.open (fitsfiles[300])
+hdul = fits.open (fitsfiles[298])
 cont= hdul[1].data['CONT']
 wave =hdul[1].data['WAVE']
 flux= hdul[1].data['FLUX']
@@ -79,7 +79,7 @@ print("number_of_ovi_deletions = ",number_of_ovi_deletions)
 scatter_pair=[]
 sigma_value=4
 
-N=number_of_ovi_deletions +40 # setting up a value of sigma value deletions (set it up as 40 pixels to be removed)
+N=number_of_ovi_deletions +10 # setting up a value of sigma value deletions (set it up as 40 pixels to be removed)
 while len(scatter_pair) < N and sigma_value > 0:
   
     mean_flux,std_flux=norm.fit(flux_new)
@@ -109,6 +109,8 @@ def fit_polynomial(x, y, n):
 
   # Return the coefficients of the polynomial
   return coeffs
+
+#------------------------------------------------PLOTTING CODE
 
 
 #seperating out the wavelength and flux from the zip we obtained
