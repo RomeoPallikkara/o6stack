@@ -1,4 +1,4 @@
-**The code to find the mean and median stacked spectra for the PURE OVI systems**
+#The code to find the mean and median stacked spectra for the PURE OVI systems
 
 
 #importing all the important libraries
@@ -17,7 +17,7 @@ drive.mount('/content/gdrive')
 
 
 #getting all the fits files of the pure systems from the path by using os.path
-path ="/content/gdrive/MyDrive/PURE OVI SYSTEMS"
+path="/content/gdrive/MyDrive/OVI PROJECT DATA/FITS DATA/Pure OVI systems"
 
 
 fitsfiles = []
@@ -34,9 +34,9 @@ upper_bound = 1040.813232421875
 w_int = np.arange(lower_bound,upper_bound,.03)
 
 #code for rebinning 
-final_list=[]
+rebinned_flux=[]
 for i in fitsfiles:
-  intflux=[]
+  new_flux=[]
   hdul = fits.open (i)
   flux= hdul[1].data['FLUX']
   waves =hdul[1].data['WAVE']
@@ -44,23 +44,41 @@ for i in fitsfiles:
   err= hdul[1].data['ERR']
   f = interp1d(waves,((flux/cont)),fill_value ='extrapolate')
   f_int = f(w_int)
-  intflux = list(f_int)
-  final_list.append(intflux)
+  new_flux = list(f_int)
+  rebinned_flux.append(new_flux)
 
 
-#we need the first elements of all members of final_list to be stacked.The following code does this
-arrays = [np.array(x) for x in final_list]
-f_mean = [np.mean(k) for k in zip(*arrays)]  
-f_median = [np.median(k) for k in zip(*arrays)]
+#we need the first elements of all members of rebinned_flux to be stacked.The following code does this
+arrays = [np.array(x) for x in rebinned_flux]
+mean_flux = [np.mean(k) for k in zip(*arrays)]  
+median_flux = [np.median(k) for k in zip(*arrays)]
+
+#----------------------------------------PLOTTING CODES
 
 
 #plotting the figures
 
 fig = plt.figure()
-plt.plot(w_int,f_median)
-fig.set_size_inches(15, 5)
+fig.set_size_inches(20, 5)
+plt.title('Medain stacked spectra')
+plt.axvline(x=(1031.93) ,color='blue', linestyle='--' , label = 'OVI line(1031.93)' , ymin=0, ymax=0.99)
+plt.axvline(x=(1037.62) , color='blue', linestyle='--' , label ='OVI line(1037.62' , ymin=0, ymax=0.99 )
+plt.axhline(y=1, color='green', linestyle='-')
+plt.axvspan(1031.93-(dw1/2),1031.93+(dw1/2), facecolor='green', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
+plt.axvspan(1037.62-(dw2/2),1037.62+(dw2/2), facecolor='red', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
+plt.text(1033,1.01,"median stacked spectra ",size='x-large',color ='black')
+plt.legend()
+plt.plot(w_int,(median_flux),color='black')
 
 
 fig = plt.figure()
-plt.plot(w_int,f_mean)
-fig.set_size_inches(15, 5)
+fig.set_size_inches(20, 5)
+plt.title('mean stacked spectra')
+plt.axvline(x=(1031.93) ,color='blue', linestyle='--' , label = 'OVI line(1031.93)' , ymin=0, ymax=0.99)
+plt.axvline(x=(1037.62) , color='blue', linestyle='--' , label ='OVI line(1037.62' , ymin=0, ymax=0.99 )
+plt.axhline(y=1, color='green', linestyle='-')
+plt.axvspan(1031.93-(dw1/2),1031.93+(dw1/2), facecolor='green', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
+plt.axvspan(1037.62-(dw2/2),1037.62+(dw2/2), facecolor='red', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
+plt.text(1033,1.01,"mean  stacked spectra ",size='x-large',color ='black')
+plt.legend()
+plt.plot(w_int,(mean_flux),color='black')
