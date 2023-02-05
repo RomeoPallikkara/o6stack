@@ -16,7 +16,7 @@ drive.mount('/content/gdrive')
 
 #getting all the fits files of the pure systems from the path by using os.path
 
-path ="/content/gdrive/MyDrive/PURE OVI SYSTEMS"
+path ="/content/gdrive/MyDrive/OVI PROJECT DATA/FITS DATA/Pure OVI systems"
 
 fitsfiles = []
 
@@ -28,11 +28,10 @@ for root, dirs, files in os.walk(path):
 
 
 #setting a value for the wavelength range
-
 lower_bound = 1028.986328125
 upper_bound = 1040.813232421875
-
 w_int = np.arange(lower_bound,upper_bound,.03)
+
 
 
 
@@ -51,7 +50,6 @@ for i in fitsfiles:
   f_int = f(w_int)
   intflux = list(f_int)
   flux_list.append(intflux)
-
 
 
 #creating a list which conain all the first elements each systems
@@ -76,45 +74,50 @@ for i in fitsfiles:
   w_list.append(intflux)
 
 
-
 #creating a list which conain all the first elements each systems
-
 arrays = [np.array(x) for x in w_list]
 b = [(k) for k in zip(*arrays)]
-
-
 
 
 signal = list(a)
 noise=list(b)
 
-#weighted average step in which ecah pixel is divided by its error
-pixel_wise=[]
-for i in range(0,395):
-  x=sum([(a*b) for a,b in zip(signal[i],noise[i])])
-  y=sum(noise[i])
-  result=x/y
-  pixel_wise.append(result)
+#defined a function for calculating the pixel wise average of a signal and noise
+def pixel_stack(s,n):
+  pixel_wise=[]
+  for i in range(0,395):
+    x=sum([(a*b) for a,b in zip(s[i],n[i])])
+    y=sum(n[i])
+    result=x/y
+    pixel_wise.append(result)
+  return pixel_wise
 
-#weighted average step in which ecah 
+# defined a function for calculating the median wise average of a signal and noise
+def median_stack(s,n):
+  median_wise=[]
+  for i in range(0,395):
+    x=sum([(a*b) for a,b in zip(s[i],n[i])])
+    y=np.mean((n[i]))
+    result=x/(581*y)
+    median_wise.append(result)
+  return median_wise
 
-median=[]
-for i in range(0,395):
-  x=sum([(a*b) for a,b in zip(signal[i],noise[i])])
-  y=np.mean((noise[i]))
-  result=x/(581*y)
-  median.append(result)
-  
-  
-  
+pixel_stack_flux=pixel_stack(signal,noise)
+median_stack_flux=median_stack(signal,noise)
+
+
+
+
+
+#---------------------------------------------PLOTTING CODES
+
 o1_wave = 1031.93
 o2_wave = 1037.62
 dw1 = (1.665*50*3*o1_wave)/(3*(10**5))
 dw2 = (1.665*50*3*o2_wave)/(3*(10**5))
 
 
-#plotting the spectrum
-
+#plotting the pixel wise weigheted average stacked spectra
 fig = plt.figure()
 fig.set_size_inches(20, 5)
 plt.title('pixel wise taken case')
@@ -125,8 +128,9 @@ plt.axvspan(1031.93-(dw1/2),1031.93+(dw1/2), facecolor='green', alpha=0.5,label=
 plt.axvspan(1037.62-(dw2/2),1037.62+(dw2/2), facecolor='red', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
 plt.text(1033,1.01,"WEIGHTED AVERAGED SPECTRA",size='x-large',color ='black')
 plt.legend()
-plt.plot(w_int,(pixel_wise),color='black')
+plt.plot(w_int,(pixel_stack_flux),color='black')
 
+#plotting the median wise weigheted average stacked spectra
 fig = plt.figure()
 fig.set_size_inches(20, 5)
 plt.title('median taken case')
@@ -137,4 +141,4 @@ plt.axvspan(1031.93-(dw1/2),1031.93+(dw1/2), facecolor='green', alpha=0.5,label=
 plt.axvspan(1037.62-(dw2/2),1037.62+(dw2/2), facecolor='red', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
 plt.text(1033,1.01,"WEIGHTED AVERAGED SPECTRA",size='x-large',color ='black')
 plt.legend()
-plt.plot(w_int,(median),color='black')
+plt.plot(w_int,(median_stack_flux),color='black')
