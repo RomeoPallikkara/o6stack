@@ -22,7 +22,6 @@ fitsfiles = []
 for root, dirs, files in os.walk(path):
 	for file in files:
 		fitsfiles.append(os.path.join(root,file))
-#now the list contains the path to each fits files
 
 #opening the fits file by using hdul command
 
@@ -36,202 +35,118 @@ econt=hdul[1].data['ECONT']
 expt=hdul[1].data['EXPT']
 
 
-#setting up the sigma_value(can find from the KDE plot , upto which value we need to remove the pixels) 
-sigma_value=2
-
-#The value of fwhm(b=50km/s) upto which in the region of OVI chunk we need to remove the pixels
 fwhm_value=3
+sigma_value=1.75
 
 
-
-#plotting a gaussian curve to the flux/cont values
-mean,std=norm.fit(flux/cont)
-xmin =min(flux/cont)
-xmax=max(flux/cont)
-x = np.linspace(xmin, xmax, len(flux))
-y = norm.pdf(x, mean, std)
-
-
-#calculating the sigma lengths 
-sigma =sigma_value*std
-sigma_length1= mean+sigma
-sigma_length2 =mean-sigma
-
-
-
-#plotting the flux/cont KDE plot and fitting a gaussian curve to it
-
-sns.displot(x=flux/cont,color="black",kind="kde",label='Danforth continum line',legend=True).set(title='KDE Plot ')
-plt.axvline(x=1, color='red', linestyle='-',label='line at 1')
-plt.axvline(x=sigma_length1, color='green', linestyle='-',label='line at #n sigma')
-plt.axvline(x=sigma_length2, color='blue', linestyle='-',label='line at #n sigma')
-plt.plot(x, y,label='Gaussian')
-plt.legend()
-plt.show()
-
-
-# from here selecting the OVI range 3fwhm(b=50km/s) 
-
+#removing the pixels which are within 3fwhm of both ovi region
 o1_wave = 1031.912
 o2_wave = 1037.613
 dw1 = (1.665*50*fwhm_value*o1_wave)/(3*(10**5))
 dw2 = (1.665*50*fwhm_value*o2_wave)/(3*(10**5))
 
-#calculating the wavelength range of 3fwhm
 a=(o1_wave-(dw1/2))
 b=(o1_wave+(dw1/2))
 c=(o2_wave-(dw2/2))
 d=(o2_wave+(dw2/2))
 
-#selecting the wavelength that belong to the 3fwhm range of OVI chunks 1 and 2
-ovi_chunk1=[]
-for i in wave:
-  if a<i<b:
-    ovi_chunk1.append(i)
-    
-
-ovi_chunk2=[]
-for i in wave:
-  if c<i<d:
-    ovi_chunk2.append(i)
-
-wave=list(wave)
-
-# choosing the index of these wavelengths to find the corresponding flux
-oxy1_wave_index=[]
-oxy1_wave_insert=[]
-for i in ovi_chunk1:
-  k=(wave.index(i))
-  j=i
-  oxy1_wave_index.append((k))
-  oxy1_wave_insert.append((j))
+pair = list(zip(wave, flux ,err)) 
+pair_1 = list(zip(wave, flux ,err)) 
 
 
-oxy2_wave_index=[]
-oxy2_wave_insert=[]
-for i in ovi_chunk2:
-  k=(wave.index(i))
-  j=i
-  oxy2_wave_index.append((k))
-  oxy2_wave_insert.append((j))
+def filter_o6(p):
+  p2 = []
+  for e in p:
+    if not (a < e[0] < b or c < e[0] < d):
+      p2.append(e)
+
+  return p2
+
+pair_new = filter_o6(pair)
 
 
-# making the flux and wave pairs for the data in fits
-pair =[list(pair) for pair in zip(wave, flux)] 
-
-
-#The pairs(of wavelength and flux) within 3fwhm
-ovi_chunk1_list=[]
-for i in pair:
-  for j in ovi_chunk1:
-    if j in i:
-      ovi_chunk1_list.append(i)
-
-ovi_chunk2_list=[]
-for i in pair:
-  for j in ovi_chunk2:
-    if j in i:
-      ovi_chunk2_list.append(i)
-
-# seperatnig out wave and flux from the pair made
-w1, f1  = map(list, zip(*ovi_chunk1_list))
-w2, f2  = map(list, zip(*ovi_chunk2_list))
-
-
-
-
-
-#creating a list list_of_flux_for_deletion and now have to add these 2 ranges of flux named as f1 and f2 to the list_of_flux_for_deletion
-list_of_flux_for_deletion=f1+f2
-
-
-# Removing the flux pixels that are below a certain value of sigma we chose earlier
+#filtering out the pixels that are below a certain level of sigma
+#setting up the sigma_value(can find from the KDE plot , upto which value we need to remove the pixels) 
 
 mean_flux,std_flux=norm.fit(flux)
-
 sigma_flux =sigma_value*std_flux
-sigma_length_max= mean_flux+sigma_flux
 sigma_length_min =mean_flux-sigma_flux
 
-
-for i in flux:
-  if i < sigma_length_min:
-    list_of_flux_for_deletion.append(i)
-
-sample_flux=list(flux) # creating list of flux since it is a ndarray
-
-#have to find the index of these fluxes which are below a certain limit in the sample_flux list
-list_indexes=[]
-elements_to_insert=[]
-for i in list_of_flux_for_deletion:
-  k=(sample_flux.index(i))
-  j=i
-  list_indexes.append((k))
-  elements_to_insert.append((j))
+def filter_sigma(p):
+  p2 = []
+  for e in p:
+    i = p.index(e)
+    if p[i][1] >= sigma_length_min:
+      p2.append(e)
+  return p2
+pair_new2 = filter_sigma(pair_new)
 
 
-# removing the flux which we identified to be removed and created a new list new_flux_list.
-final_flux=list(flux)
-for i in list_indexes:
-  new_flux_list=[v for i, v in enumerate(final_flux) if i not in list_indexes]  
+#the pair of removed pixels 
+scatter_pair=[]
+for e in pair:
+  if e not in pair_new2:
+    scatter_pair.append(e)
+
+sw, sf ,se = list(zip(*scatter_pair)) # unpaired the removed pixel to corresponding wavelength flux and error
+w, f ,e = list(zip(*pair_new2))   # unpaired the new set of values  to corresponding wavelength flux and error
 
 
-
-#have to remove the corresponding wavelengths and created a new list new_wave_list
-final_wave=list(wave)
-for i in list_indexes:
-	new_wave_list=[v for i, v in enumerate(final_wave) if i not in list_indexes]
-	
-
-# making the error and wave pairs for the data in fits(we need the error for calculating the reduced chi squared values)
-pair =[list(pair) for pair in zip(wave, err)] 
-# seperatnig out wave and flux from the pair made
-w1, e1  = map(list, zip(*ovi_chunk1_list))
-w2, e2  = map(list, zip(*ovi_chunk2_list))
-
-
-#created the new list of error after removing the omitted pixels
-
-final_err=list(err)
-for i in list_indexes:
-  new_err_list=[v for i, v in enumerate(final_err) if i not in list_indexes] 
-
-
-#Defining a function to fit the curve using the python numpy package numpy.linalg
+#fitting the newly obtained pixels 
 def fit_polynomial(x, y, n):
   # Create a matrix of powers of x, from 0 to n
   X = np.vander(x, n+1)
 
   # Use the least squares method to find the coefficients of the polynomial
-  coeffs1,_ , _, _ = np.linalg.lstsq(X, y, rcond=None)
+  coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
 
   # Return the coefficients of the polynomial
-  return coeffs1
+  return coeffs
 
 
-scatter_wave=[wave[i] for i in list_indexes]
-
-
-
-#Calculating the least square values for different values of n (upto 10)
-x=new_wave_list
-y=new_flux_list
-N=[1,2,3,4,5,6,7,8,9,10]
-least_square_value=[]
-
-for i in range(1,11):
-  coeffs1 = fit_polynomial(new_wave_list, new_flux_list,i)
-  poly = np.poly1d(coeffs1)
+#Defining a function to find the reduced chi square values
+def lsq(x,y,n):
+  lsq=[]
+  coeffs = fit_polynomial(x,y,n)
+  poly = np.poly1d(coeffs)
   new_x = x
   new_y = poly(new_x)
   predicted = new_y
-  observed = new_flux_list
+  observed = y
   residuals = observed - predicted
-  least_square_value.append(sum(residuals**2))
+  lsq.append(sum(residuals**2)) 
+  return lsq 
+
+def rcsq(x,y,z,n):
+  reduced_chi_sq = []
+  coeff = fit_polynomial(x, y, n)
+  poly = np.poly1d(coeff)
+  new_x = x
+  predicted = poly(new_x)
+  observed = y
+  uncertainties = z
+  residuals = observed - predicted
+  chi_square = sum((residuals/uncertainties)**2)
+  #print("chi square" ,chi_square)
+  degrees_of_freedom= len(observed)-n
+  reduced_chi_square = chi_square / degrees_of_freedom
+  reduced_chi_sq.append(reduced_chi_square)
+  return reduced_chi_sq
+
+#calculating the reduced chi square and least square values for n=1 to n=10
+least_square_value=[]
+reduced_chi_square=[]
+for i in range(1,11):
+  least_square_value.append(lsq(w,f,i))
+  reduced_chi_square.append(rcsq(w,f,e,i))
+
+
+
+#-----------------------------------------------
 
 
 #plotting the value of least_square_value with different n
-
+N=[1,2,3,4,5,6,7,8,9,10]
 fig = plt.figure()
 fig.set_size_inches(10, 5)
 plt.scatter(N,least_square_value,color="black")
@@ -239,48 +154,38 @@ plt.title("Least square value vs n  ")
 plt.xlabel("n")
 plt.ylabel("Least square value ")
 plt.xticks(N)
+m= min(least_square_value)
+index = (least_square_value.index(m))
+for i in least_square_value:
+  if i == m:
+    plt.scatter(N[index],least_square_value[index],color="red",label="Minimum value of least square value")
 plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
 plt.savefig('/content/leastsquare.png',bbox_inches='tight')
-
-
-#For finding  the reduced chi square we need the observed prediceted values and the uncertainities assosiated with them.Setting up these values
-
-#Finding the reduced chi square value for the different values of n
-rcsq = []
-for i in range(1,11):
-  coeffs1 = fit_polynomial(new_wave_list, new_flux_list, i)
-  poly = np.poly1d(coeffs1)
-  new_x = x
-  predicted = poly(new_x)
-  observed = new_flux_list
-  uncertainties = new_err_list
-  residuals = observed - predicted
-  chi_square = sum((residuals/uncertainties)**2)
-  #print("chi square" ,chi_square)
-  degrees_of_freedom= len(observed)-i
-  reduced_chi_square = chi_square / degrees_of_freedom
-  rcsq.append(reduced_chi_square)
 
 
 # Plotting the reduced chi square value vs n 
 fig = plt.figure()
 fig.set_size_inches(10, 5)
-plt.scatter(N,rcsq,color="black")
+plt.scatter(N,reduced_chi_square,color="black")
 plt.title("Reduced chi  square value vs n  ")
 plt.xlabel("n")
 plt.ylabel("Reduced chi  square value ")
+plt.axhline(y=1)
 plt.xticks(N)
+l= min(reduced_chi_square)
+index = (reduced_chi_square.index(l))
+for k in reduced_chi_square:
+  if k == l:
+    plt.scatter(N[index],reduced_chi_square[index],color="red",label="Minimum value of reduced chi square value")
 plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
 plt.savefig('/content/Reduced chi square.png',bbox_inches='tight')
 
-
-#plotting the newly fitted continuum with a particular n value
-coeffs1 = fit_polynomial(new_wave_list, new_flux_list,8)
+'''
+#just to chcek the plot of the continum and spectra
+coeffs1 = fit_polynomial(w, f,8)
 poly1 = np.poly1d(coeffs1)
-new_x1 = x
+new_x1 = w
 new_y1 = poly1(new_x1)
-
-
 fig = plt.figure()
 fig.set_size_inches(20, 5)
 plt.plot(wave,flux,color='black')
@@ -288,9 +193,10 @@ plt.plot(new_x1,new_y1,"blue",label='Newly fitted continum ')
 plt.axvline(x=(1031.93) ,color='green', linestyle='--' , label = 'OVI line(1031.93)' , ymin=0, ymax=0.99)
 plt.axvline(x=(1037.62) , color='red', linestyle='--' , label ='OVI line(1037.62' , ymin=0, ymax=0.99 )
 plt.plot(wave,cont,color='red',label='Danfoth continum ')
-plt.scatter(scatter_wave,list_of_flux_for_deletion,color='blue',label='pixels removed')
+plt.scatter(sw,sf,color='blue',label='pixels removed')
 plt.axvspan(1031.93-(dw1/2),1031.93+(dw1/2), facecolor='green', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
 plt.axvspan(1037.62-(dw2/2),1037.62+(dw2/2), facecolor='red', alpha=0.5,label='3fwhm range of OVI (b=50km/s)')
 plt.title("Continum fitted plot , n=8 ")
 plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
 plt.savefig('/content/continum fitted plot.png',bbox_inches='tight')
+'''
