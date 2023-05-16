@@ -54,7 +54,10 @@ mean_flux = [np.mean(k) for k in zip(*arrays)]
 median_flux = [np.median(k) for k in zip(*arrays)]
 
 #----------------------------------------PLOTTING CODES
-
+o1_wave = 1031.93
+o2_wave = 1037.62
+dw1 = (1.665*50*3*o1_wave)/(3*(10**5))
+dw2 = (1.665*50*3*o2_wave)/(3*(10**5))
 
 #plotting the figures
 
